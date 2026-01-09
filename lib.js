@@ -14,6 +14,7 @@ function rewriteModule(code, sourceUrl) {
     // imports like "./xxx" or "/xxx" will be rewritten to absolute URLs
     const specifier = code.slice(importEntry.s, importEntry.e);
     let rewritten = specifier;
+    // TODO: we make sure only handle static import syntax and static import(string) here
 
     if (specifier.startsWith(".") || specifier.startsWith("/")) {
       rewritten = new URL(specifier, sourceUrl).href;
@@ -39,6 +40,8 @@ function isBrowserUrl(url) {
 
 // track blob URLs to their original source URLs
 const blobMap = new Map();
+// track components loaded by loadComponent(), name -> {url, component}
+const loadedComponentsRecord = new Map();
 
 async function esm(code, sourceUrl) {
   code = rewriteModule(code, sourceUrl);
@@ -79,7 +82,17 @@ export async function loadComponent(name, url, afterConstructor) {
   url = new URL(url, importerUrl).href;
 
   if (customElements.get(name)) {
-    return customElements.get(name);
+    const component = customElements.get(name);
+    if (!loadedComponentsRecord.has(name)) {
+      // component name is not defined via loadComponent before
+      throw new Error(`Component name ${JSON.stringify(name)} is already being used`, component);
+    }
+    const loadedComponentRecord = loadedComponentsRecord.get(name);
+    if (loadedComponentRecord.url === url) {
+      return loadedComponentRecord.component;
+    }
+    // one component name should only map to one URL, this is how we cache components
+    throw new Error(`Component ${name} is already defined with a different URL`, loadedComponentRecord.url);
   }
 
   // TODO: we may allow custom the fetch function
@@ -150,6 +163,7 @@ export async function loadComponent(name, url, afterConstructor) {
   if (!component) {
     const impl = extendsElement(HTMLElement, doc.body.innerHTML, afterConstructor);
     customElements.define(name, impl);
+    loadedComponentsRecord.set(name, { component: impl, url });
     return impl;
   }
 
@@ -159,19 +173,48 @@ export async function loadComponent(name, url, afterConstructor) {
 
   const impl = extendsElement(component, doc.body.innerHTML, afterConstructor);
   customElements.define(name, impl);
+  loadedComponentsRecord.set(name, { component: impl, url });
   return impl;
 }
 
 function extendsElement(BaseClass = HTMLElement, innerHTML, afterConstructor) {
+  // we doubt if this is a good way
+  // since the user provider a web component class,
+  // then we create a subclass for it that injects shadow root
+
   return class extends BaseClass {
     constructor() {
-      super();
-      this.attachShadow({ mode: "open" }).innerHTML = innerHTML;
+      //! we provide an extra argument to user's component constructor
+      super(innerHTML);
+      //! if the user constructor do not create shadow root, we will create one here
+      if (!this.shadowRoot) {
+        this.attachShadow({ mode: "open" }).innerHTML = innerHTML;
+      }
       if (afterConstructor) {
         afterConstructor.call(this);
       }
     }
   };
+}
+
+/**
+ * a dual component definition helper function
+ * - when used inside loadComponent-imported module, it defines a web component class
+ * - when used in normal document context, it just runs the function with document as root
+ */
+export function defineComponent(fc) {
+  const whoDefineMe = stackTraceParser.parse(new Error().stack).at(-1).file;
+
+  if (blobMap.has(whoDefineMe)) {
+    console.log(blobMap.get(whoDefineMe));
+    return class extends HTMLElement {
+      connectedCallback() {
+        fc(this.shadowRoot || this.attachShadow({ mode: "open" }));
+      }
+    };
+  }
+
+  return fc(document);
 }
 
 function filterGlobalStyle(doc) {
@@ -221,6 +264,21 @@ function matchCSSAtImport(code) {
   return imports;
 }
 
+function matchCSSUrlFunction(code) {
+  // match url("...") or url('...') or url(...)
+  const regex = /url\(\s*["']?([^"')]+)["']?\s*\)/g;
+
+  // {s: start index, e: end index, url: the matched url}
+  const urls = [];
+  let match;
+
+  while ((match = regex.exec(code)) !== null) {
+    urls.push({ s: match.index + 4, e: match.index + 4 + match[1].length, url: match[1] });
+  }
+
+  return urls;
+}
+
 // TODO: unused here, why?
 // if we need to rewrite CSS imports, we should both rewrite <style> and <link rel="stylesheet">
 // for <style> it is fine, but for <link> we may need to fetch the CSS content and inject a <style> tag instead
@@ -238,6 +296,21 @@ function rewriteCSSImports(code, sourceUrl) {
       code = code.slice(0, importEntry.s) + rewritten + code.slice(importEntry.e);
     }
   }
+
+  const urls = matchCSSUrlFunction(code);
+
+  for (const urlEntry of urls.reverse()) {
+    const specifier = urlEntry.url;
+
+    if (!isBrowserUrl(specifier) && !specifier.startsWith("data:")) {
+      const rewritten = new URL(specifier, sourceUrl).href;
+      code = code.slice(0, urlEntry.s) + rewritten + code.slice(urlEntry.e);
+    }
+  }
+
+  // when rewrite esm import, we use an AST parser to make sure correctness
+  // here we use regex, which will not be 100% correct, especially for matching comments, strings, etc.
+  // (which should never be matched)
 
   return code;
 }
