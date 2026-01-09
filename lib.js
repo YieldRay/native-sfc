@@ -129,6 +129,8 @@ export async function loadComponent(name, url, afterConstructor) {
       // we do not use dynamic import() here because we need to rewrite the import URLs inside the module code
       // const module = await import(src);
       const res = await fetch(src);
+      // we do not allow <script type="module" src="vue"> to load https://esm.sh/vue directly
+      // it works just like "./vue"
       if (!res.ok) {
         // TODO: better error message, similar to browser error when failed in dynamic import()
         throw new Error(`Failed to load module script: ${src}, status: ${res.status}`);
@@ -155,20 +157,17 @@ export async function loadComponent(name, url, afterConstructor) {
   // a normal script tag that is not a module will be injected into the shadow root and executed there
 
   const component = result.default;
+  const defaultExportIsComponent = component.prototype instanceof HTMLElement;
 
   // we will inject doc.body.innerHTML into the shadow root of the component
   // if we use doc.documentElement.innerHTML, this will include extra <body> element, which make styling complicated
   // and there is NO need to write a <body> tag in the component html file
 
-  if (!component) {
+  if (!component || !defaultExportIsComponent) {
     const impl = extendsElement(HTMLElement, doc.body.innerHTML, afterConstructor);
     customElements.define(name, impl);
     loadedComponentsRecord.set(name, { component: impl, url });
     return impl;
-  }
-
-  if (!(component.prototype instanceof HTMLElement)) {
-    throw new Error(`Default export is not a web component constructor: ${name}`);
   }
 
   const impl = extendsElement(component, doc.body.innerHTML, afterConstructor);
@@ -206,15 +205,14 @@ export function defineComponent(fc) {
   const whoDefineMe = stackTraceParser.parse(new Error().stack).at(-1).file;
 
   if (blobMap.has(whoDefineMe)) {
-    console.log(blobMap.get(whoDefineMe));
     return class extends HTMLElement {
       connectedCallback() {
-        fc(this.shadowRoot || this.attachShadow({ mode: "open" }));
+        fc.call(this, this.shadowRoot || this.attachShadow({ mode: "open" }));
       }
     };
   }
 
-  return fc(document);
+  return fc.call(globalThis, document);
 }
 
 function filterGlobalStyle(doc) {

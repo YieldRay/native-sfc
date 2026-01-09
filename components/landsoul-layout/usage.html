@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>example</title>
+  </head>
+  <body>
+    <landsoul-layout>
+      <span slot="header-title">Landsoul Layout</span>
+      <span slot="header-aside">This is the header aside</span>
+
+      <div slot="menu">This is the menu content</div>
+
+      Hello, world!
+
+      <div slot="footer">This is the footer content</div>
+    </landsoul-layout>
+  </body>
+  <script type="module">
+    import { loadComponent } from "../../lib.js";
+    loadComponent("landsoul-layout", "./").then(console.log);
+  </script>
+</html>
