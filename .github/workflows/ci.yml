@@ -37,6 +37,7 @@ jobs:
       - name: NPM build
         run: |
           npm run build
+          rm -rf node_modules # remove it to prevent uploading it to GitHub Pages
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
