@@ -3,7 +3,21 @@ import type { BuildOptions, Plugin } from "esbuild";
 import process from "node:process";
 import fs from "node:fs";
 
-const run = async () => {
+const esmShPlugin: Plugin = {
+  name: "rewrite-to-esm-sh",
+  setup(build) {
+    build.onResolve({ filter: /^[^.\/]/ }, (args) => {
+      if (args.path.startsWith("http")) return;
+
+      return {
+        path: `https://esm.sh/${args.path}`,
+        external: true,
+      };
+    });
+  },
+};
+
+async function run() {
   await build({
     plugins: [esmShPlugin],
     banner: {
@@ -19,7 +33,7 @@ const run = async () => {
   });
 
   console.log("Build completed.");
-};
+}
 
 if (process.argv.includes("--dev")) {
   await run();
@@ -31,22 +45,11 @@ if (process.argv.includes("--dev")) {
   });
 } else {
   console.log("Building...");
-  run().catch(() => process.exit(1));
+  run().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
 }
-
-const esmShPlugin: Plugin = {
-  name: "rewrite-to-esm-sh",
-  setup(build) {
-    build.onResolve({ filter: /^[^.\/]/ }, (args) => {
-      if (args.path.startsWith("http")) return;
-
-      return {
-        path: `https://esm.sh/${args.path}`,
-        external: true,
-      };
-    });
-  },
-};
 
 async function build(options?: Partial<BuildOptions>) {
   const defaultOptions: BuildOptions = {
