@@ -26,7 +26,6 @@ export async function loadComponent(
     }
   }
 
-  // TODO: we may allow custom the fetch function
   const html = await requestText(
     url,
     `loadComponent(${JSON.stringify(name)}, ${JSON.stringify(url)})`,
@@ -59,13 +58,14 @@ export async function loadComponent(
   // if we use doc.documentElement.innerHTML, this will include extra <body> element, which make styling complicated
   // and there is NO need to write a <body> tag in the component html file
 
+  if (component && !defaultExportIsComponent) {
+    warn(
+      `The default export of component ${JSON.stringify(name)} loaded from ${url} is not a web component class`,
+      component,
+    );
+  }
+
   if (!component || !defaultExportIsComponent) {
-    if (!defaultExportIsComponent) {
-      warn(
-        `The default export of component ${JSON.stringify(name)} loaded from ${url} is not a web component class`,
-        component,
-      );
-    }
     const cec = extendsElement(
       HTMLElement,
       doc.body.innerHTML,

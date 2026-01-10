@@ -36,3 +36,8 @@ A helper function for dual-mode component definition:
 - Inside the ESM modules, the `from` syntax in import statements are rewritten to absolute URL, since all modules are actually loaded as blob URLs.
 - Since all styles are moved to `adoptedStyleSheets` in component's shadow root, we CANNOT use `@import` rules in styles.
 - Components loaded with the same name and URL are cached and reused.
+- Only `script[src]`'s src' `link[rel="stylesheet"]`'s href will be rewritten. Warn that `a[href]`/`img[src]`/etc with relative URLs in the HTML body will NOT be rewritten.
+
+## Next Steps
+
+- Implement component debugger

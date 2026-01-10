@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Custom Fetch</title>
+  </head>
+  <body>
+    <main>
+      <embed-page></embed-page>
+    </main>
+
+    <script type="module">
+      import { loadComponent, defineFetch } from "../dist/index.bundled.js";
+      defineFetch(async (input, init) => {
+        console.log("Custom fetch called for:", input);
+        const url = new Request(input, init).url;
+        return fetch(`https://proxy.scalar.com/?scalar_url=${encodeURIComponent(url)}`);
+      });
+
+      const url = "https://sqlite.org/";
+
+      // you can see that this demo works just like micro frontend
+      loadComponent("embed-page", url, function () {
+        // rewrite a[href] and img[src]
+        this.shadowRoot.querySelectorAll("a[href]").forEach((a) => {
+          const href = a.getAttribute("href");
+          if (href && !href.startsWith("http")) {
+            a.href = new URL(href, url).href;
+          }
+        });
+        this.shadowRoot.querySelectorAll("img[src]").forEach((img) => {
+          const src = img.getAttribute("src");
+          if (src && !src.startsWith("http")) {
+            img.src = new URL(src, url).href;
+          }
+        });
+
+        Array.from(this.shadowRoot.adoptedStyleSheets).forEach((sheet, index) => {
+          Array.from(sheet.cssRules).forEach((rule) => {
+            // if the selector includes body, replace to :host
+            if (rule instanceof CSSStyleRule) {
+              // always insert :host {display: block;}
+              sheet.insertRule(":host { display: block; }", 0);
+              if (rule.selectorText.includes("body")) {
+                const newSelector = rule.selectorText.replace(/body/g, ":host");
+                const newRule = `${newSelector} { ${rule.style.cssText} }`;
+                sheet.deleteRule(Array.from(sheet.cssRules).indexOf(rule));
+                sheet.insertRule(newRule, index);
+              }
+            }
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

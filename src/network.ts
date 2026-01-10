@@ -1,5 +1,11 @@
 import { WCLoaderError } from "./error.ts";
 
+let fetch = globalThis.fetch;
+
+export function defineFetch(customFetch: typeof fetch) {
+  fetch = customFetch;
+}
+
 export async function requestText(url: string | URL, userFriendlySource: string): Promise<string> {
   return request(url, userFriendlySource).then((res) => res.text());
 }
