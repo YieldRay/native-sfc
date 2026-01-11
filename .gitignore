@@ -6,3 +6,4 @@ pnpm-lock.yaml
 bun.lock
 deno.lock
 yarn.lock
+*.tgz
