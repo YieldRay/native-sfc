@@ -1,7 +1,7 @@
 import * as stackTraceParser from "stacktrace-parser";
 import { blobMap, esm, getImporterUrl } from "./rewriter.ts";
 import { requestText, request } from "./network.ts";
-import { WCLoaderError, warn } from "./error.ts";
+import { NativeSFCError, warn } from "./error.ts";
 import { emit } from "./events.ts";
 
 const loadedComponentsRecord = new Map<string, { url: string; cec: CustomElementConstructor }>();
@@ -21,7 +21,7 @@ export async function loadComponent(
   if (customElements.get(name)) {
     if (!loadedComponentsRecord.has(name)) {
       // component name is not defined via loadComponent before, we cannot define it again
-      throw new WCLoaderError(`Component name ${JSON.stringify(name)} is already being used`);
+      throw new NativeSFCError(`Component name ${JSON.stringify(name)} is already being used`);
     }
 
     const loadedComponentRecord = loadedComponentsRecord.get(name)!;

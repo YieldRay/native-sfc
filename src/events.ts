@@ -1,34 +1,34 @@
-interface WCLoaderEvents {
+interface NativeSFCEvents {
   "component-loading": { name: string; url: string };
   "component-defined": { name: string; url: string };
 }
 
-type WCLoaderEventsMap = {
-  [K in keyof WCLoaderEvents]: CustomEvent<WCLoaderEvents[K]>;
+type NativeSFCEventsMap = {
+  [K in keyof NativeSFCEvents]: CustomEvent<NativeSFCEvents[K]>;
 };
 
 export const eventTarget = new EventTarget() as {
-  addEventListener<K extends keyof WCLoaderEventsMap>(
+  addEventListener<K extends keyof NativeSFCEventsMap>(
     type: K,
-    listener: (this: HTMLDivElement, ev: WCLoaderEventsMap[K]) => any,
+    listener: (this: HTMLDivElement, ev: NativeSFCEventsMap[K]) => any,
     options?: boolean | AddEventListenerOptions,
   ): void;
-  removeEventListener<K extends keyof WCLoaderEventsMap>(
+  removeEventListener<K extends keyof NativeSFCEventsMap>(
     type: K,
-    listener: (this: HTMLDivElement, ev: WCLoaderEventsMap[K]) => any,
+    listener: (this: HTMLDivElement, ev: NativeSFCEventsMap[K]) => any,
     options?: boolean | EventListenerOptions,
   ): void;
-  dispatchEvent(event: WCLoaderEventsMap[keyof WCLoaderEventsMap]): boolean;
+  dispatchEvent(event: NativeSFCEventsMap[keyof NativeSFCEventsMap]): boolean;
 };
 
-export function emit(eventName: keyof WCLoaderEvents, detail: WCLoaderEvents[typeof eventName]) {
+export function emit(eventName: keyof NativeSFCEvents, detail: NativeSFCEvents[typeof eventName]) {
   const event = new CustomEvent(eventName, { detail });
   eventTarget.dispatchEvent(event);
 }
 
-export function on<K extends keyof WCLoaderEvents>(
+export function on<K extends keyof NativeSFCEvents>(
   eventName: K,
-  listener: (ev: WCLoaderEventsMap[K]) => any,
+  listener: (ev: NativeSFCEventsMap[K]) => any,
 ) {
   eventTarget.addEventListener(eventName, listener as EventListener);
   return () => {

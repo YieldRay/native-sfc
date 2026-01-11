@@ -1,6 +1,6 @@
-# WCLoader
+# Native-SFC
 
-Load a HTML file as a Web Component.
+Load a single HTML file as a Web Component.
 
 ## How it works
 

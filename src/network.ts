@@ -1,4 +1,4 @@
-import { WCLoaderError } from "./error.ts";
+import { NativeSFCError } from "./error.ts";
 
 let fetch = globalThis.fetch;
 
@@ -14,14 +14,14 @@ export async function request(url: string | URL, userFriendlySource: string) {
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      throw new WCLoaderError(`Failed to fetch ${url} at ${userFriendlySource}`, {
+      throw new NativeSFCError(`Failed to fetch ${url} at ${userFriendlySource}`, {
         cause: new Error(`HTTP status ${response.status}`),
       });
     }
     return response;
   } catch (error) {
-    if (!(error instanceof WCLoaderError)) {
-      throw new WCLoaderError(`Failed to fetch ${url} at ${userFriendlySource}`, {
+    if (!(error instanceof NativeSFCError)) {
+      throw new NativeSFCError(`Failed to fetch ${url} at ${userFriendlySource}`, {
         cause: error,
       });
     }
