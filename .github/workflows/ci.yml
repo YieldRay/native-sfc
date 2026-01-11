@@ -37,6 +37,10 @@ jobs:
       - name: NPM build
         run: |
           npm run build
+
+      - name: NPM build for release
+        run: |
+          npm pack --pack-destination dist
           rm -rf node_modules # remove it to prevent uploading it to GitHub Pages
 
       - name: Setup Pages

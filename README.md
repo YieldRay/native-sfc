@@ -44,3 +44,4 @@ A helper function for dual-mode component definition:
 - Implement component debugger
 - Implement component bundler in both runtime and server-side
 - Consider to support rewriting relative URLs in CSS
+- Add hooks for common shadow root operations
