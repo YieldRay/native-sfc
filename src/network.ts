@@ -5,7 +5,7 @@ export async function requestText(url: string | URL, userFriendlySource: string)
   return request(url, userFriendlySource).then((res) => res.text());
 }
 
-export async function request(url: string | URL, userFriendlySource: string) {
+export async function request(url: string | URL, userFriendlySource: string): Promise<Response> {
   const { fetch } = config;
   let response: Response;
   try {

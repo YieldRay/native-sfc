@@ -23,6 +23,7 @@ import { requestText, request } from "./network.ts";
 import { NativeSFCError, warn } from "./error.ts";
 import { emit } from "./events.ts";
 import { reactiveNodes } from "./template.ts";
+import type { ModuleObject } from "./config.ts";
 
 /**
  * Cache of loaded components to prevent duplicate definitions and enable reuse.
@@ -105,7 +106,7 @@ export async function loadComponent(name: string, url: string): Promise<CustomEl
 
   // Step 4: Evaluate all ES module scripts and collect their exports
   // The default export should be the component class (extends HTMLElement)
-  const result = await evaluateModules(doc, url);
+  const result: ModuleObject = await evaluateModules(doc, url);
   // After this call, all <script type="module"> elements are removed from doc
 
   // Step 5: Move remaining scripts (classic, non-module) from <head> to <body>
@@ -238,7 +239,7 @@ export function defineComponent(
     onConnected: (cb: (root: ShadowRoot | Document) => void) => void;
     onDisconnected: (cb: (root: ShadowRoot) => void) => void;
   }) => any,
-): any {
+): unknown {
   // note that files in src/* are always bundled, so we can use stack trace to detect who called the entry point
   const whoDefineMe = stackTraceParser.parse(new Error().stack!).at(-1)!.file!;
 
@@ -270,7 +271,7 @@ export function defineComponent(
   });
 }
 
-function filterGlobalStyle(doc: Document) {
+function filterGlobalStyle(doc: Document): void {
   // all style tag and link[rel="stylesheet"] with global attribute
 
   for (const styleElement of doc.querySelectorAll("style")) {
@@ -326,7 +327,7 @@ async function collectAdoptedStyleSheets(doc: Document): Promise<CSSStyleSheet[]
   return adoptedStyleSheets;
 }
 
-function rewriteStyleAndScript(doc: Document, url: string) {
+function rewriteStyleAndScript(doc: Document, url: string): void {
   // rewrite all script[src] to absolute URLs
   for (const script of doc.querySelectorAll("script[src]")) {
     const src = new URL(
@@ -352,10 +353,10 @@ function rewriteStyleAndScript(doc: Document, url: string) {
   // as a result, we are NOT allowed to use @import in component html files
 }
 
-async function evaluateModules(doc: Document, url: string) {
+async function evaluateModules(doc: Document, url: string): Promise<ModuleObject> {
   // the final exported module, composed into a single one
 
-  const result: any = {};
+  const result: ModuleObject = {};
   for (const script of doc.querySelectorAll('script[type="module"]')) {
     const src = (script as HTMLScriptElement).src;
     if (src) {

@@ -1,9 +1,9 @@
-import { parse } from "es-module-lexer/js";
-import * as stackTraceParser from "stacktrace-parser";
-import { config } from "./config.ts";
+import { parse as parseESM } from "es-module-lexer/js";
+import { parse as parseStackTrace } from "stacktrace-parser";
+import { config, type ModuleObject } from "./config.ts";
 
 async function rewriteModule(code: string, sourceUrl: string): Promise<string> {
-  const [imports] = parse(code);
+  const [imports] = parseESM(code);
 
   const rewritableImports = imports.filter((i) => {
     const specifier = code.slice(i.s, i.e);
@@ -51,7 +51,7 @@ function isBrowserUrl(url: string): boolean {
 export const blobMap = new Map<string, string>();
 // track components loaded by loadComponent(), name -> {url, component}
 
-export async function esm(code: string, sourceUrl: string): Promise<any> {
+export async function esm(code: string, sourceUrl: string): Promise<ModuleObject> {
   code = await rewriteModule(code, sourceUrl);
 
   const blob = new Blob([code], { type: "text/javascript" });
@@ -59,15 +59,19 @@ export async function esm(code: string, sourceUrl: string): Promise<any> {
   blobMap.set(blobUrl, sourceUrl);
 
   try {
-    const module = await import(blobUrl);
+    const module: ModuleObject = await import(blobUrl);
     return module;
   } finally {
     URL.revokeObjectURL(blobUrl);
   }
 }
 
+/**
+ * IMPORTANT: we split functions into files, but there will be eventually
+ * single bundled file, so this function will work.
+ */
 export function getImporterUrl() {
-  const stack = stackTraceParser.parse(new Error().stack!);
+  const stack = parseStackTrace(new Error().stack!);
   for (const { file } of stack) {
     if (file && file !== import.meta.url) {
       if (file.startsWith("blob:")) {
@@ -82,80 +86,4 @@ export function getImporterUrl() {
   }
 
   return null;
-}
-
-function matchCSSAtImport(code: string) {
-  // two cases:
-  // @import "url" ...
-  // @import url("url") ...
-  // we match only the bare url
-  const regex1 = /@import\s+["']([^"']+)["']/g;
-  const regex2 = /@import\s+url\(\s*["']?([^"')]+)["']?\s*\)/g;
-
-  // {s: start index, e: end index, url: the matched url}
-  const imports: Array<{ s: number; e: number; url: string }> = [];
-  let match: RegExpExecArray | null;
-
-  while ((match = regex1.exec(code)) !== null) {
-    const urlStart = match.index + match[0].indexOf(match[1]);
-    imports.push({ s: urlStart, e: urlStart + match[1].length, url: match[1] });
-  }
-
-  while ((match = regex2.exec(code)) !== null) {
-    const urlStart = match.index + match[0].indexOf(match[1]);
-    imports.push({ s: urlStart, e: urlStart + match[1].length, url: match[1] });
-  }
-
-  return imports;
-}
-
-function matchCSSUrlFunction(code: string) {
-  // match url("...") or url('...') or url(...)
-  const regex = /url\(\s*["']?([^"')]+)["']?\s*\)/g;
-
-  // {s: start index, e: end index, url: the matched url}
-  const urls: Array<{ s: number; e: number; url: string }> = [];
-  let match: RegExpExecArray | null;
-
-  while ((match = regex.exec(code)) !== null) {
-    urls.push({ s: match.index + 4, e: match.index + 4 + match[1].length, url: match[1] });
-  }
-
-  return urls;
-}
-
-// TODO: unused here, why?
-// if we need to rewrite CSS imports, we should both rewrite <style> and <link rel="stylesheet">
-// for <style> it is fine, but for <link> we may need to fetch the CSS content and inject a <style> tag instead
-// (or inject CSSStyleSheet via CSSOM API),
-// so the rewritten code cannot preserve the original link tag, which is a behavior change
-// so now we should NOT use a relative css @import() rule in component html files
-function rewriteCSSImports(code: string, sourceUrl: string) {
-  const imports = matchCSSAtImport(code);
-
-  for (const importEntry of imports.reverse()) {
-    const specifier = importEntry.url;
-
-    if (!isBrowserUrl(specifier)) {
-      const rewritten = new URL(specifier, sourceUrl).href;
-      code = code.slice(0, importEntry.s) + rewritten + code.slice(importEntry.e);
-    }
-  }
-
-  const urls = matchCSSUrlFunction(code);
-
-  for (const urlEntry of urls.reverse()) {
-    const specifier = urlEntry.url;
-
-    if (!isBrowserUrl(specifier)) {
-      const rewritten = new URL(specifier, sourceUrl).href;
-      code = code.slice(0, urlEntry.s) + rewritten + code.slice(urlEntry.e);
-    }
-  }
-
-  // when rewrite esm import, we use an AST parser to make sure correctness
-  // here we use regex, which will not be 100% correct, especially for matching comments, strings, etc.
-  // (which should never be matched)
-
-  return code;
 }

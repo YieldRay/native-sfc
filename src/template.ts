@@ -1,4 +1,4 @@
-import { effect, signal, computed, effectScope } from "./signals.ts";
+import { effect, computed, effectScope } from "./signals.ts";
 
 function toCamelCase(str: string): string {
   // since we use real DOM attributes, we need to convert kebab-case to camelCase
@@ -40,10 +40,14 @@ function parseTextContent(text: string): TextPart[] {
   return parts;
 }
 
+/**
+ * @param nodes Array of Node
+ * @param context A record which the key is string and the value can be signal functions or plain variables
+ */
 export function reactiveNodes(
-  nodes: NodeListOf<ChildNode> | ChildNode[],
+  nodes: NodeListOf<Node> | Node[],
   context: Record<string, any>,
-) {
+): VoidFunction {
   // To make expression reactive, this function should be called inside an effect
   const evalExpr = (expr: string, additionalContext: Record<string, any> = {}) => {
     const ctx =
@@ -56,7 +60,7 @@ export function reactiveNodes(
     return func(...values);
   };
 
-  const recursive = (nodes: NodeListOf<ChildNode> | ChildNode[]) => {
+  const recursive = (nodes: NodeListOf<Node> | Node[]) => {
     for (const node of nodes) {
       if (node.nodeType === Node.ELEMENT_NODE) {
         const element = node as HTMLElement; // note: this may also be a custom element

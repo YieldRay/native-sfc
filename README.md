@@ -153,4 +153,3 @@ Renders a list of elements based on a reactive array expression.
 - Implement component debugger
 - Implement component bundler in both runtime and server-side
 - Consider to support rewriting relative URLs in CSS
-- Add hooks for common shadow root operations
