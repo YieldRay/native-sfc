@@ -24,6 +24,7 @@ import { NativeSFCError, warn } from "./error.ts";
 import { emit } from "./events.ts";
 import { reactiveNodes } from "./template.ts";
 import { type ModuleObject, bind } from "./config.ts";
+import { untrack } from "./signals.ts";
 
 /**
  * Cache of loaded components to prevent duplicate definitions and enable reuse.
@@ -257,11 +258,11 @@ export function defineComponent(
       }
       connectedCallback() {
         const root = this.shadowRoot || this.attachShadow({ mode: "open" });
-        this._onConnectedEvents.forEach((cb) => cb(root));
+        untrack(() => this._onConnectedEvents.forEach((cb) => cb(root)));
       }
       disconnectedCallback() {
         const root = this.shadowRoot!;
-        this._onDisconnectedEvents.forEach((cb) => cb(root));
+        untrack(() => this._onDisconnectedEvents.forEach((cb) => cb(root)));
       }
     };
   }

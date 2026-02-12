@@ -84,6 +84,16 @@ class EffectScope {
 
 let activeScope: EffectScope | null = null;
 
+export function untrack<T>(fn: () => T): T {
+  const prevEffect = activeEffect;
+  activeEffect = null;
+  try {
+    return fn();
+  } finally {
+    activeEffect = prevEffect;
+  }
+}
+
 export function effectScope(fn?: VoidFunction): VoidFunction {
   const scope = new EffectScope();
   if (fn) scope.run(fn);

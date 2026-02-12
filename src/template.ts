@@ -1,4 +1,4 @@
-import { effect, computed, effectScope } from "./signals.ts";
+import { effect, computed, effectScope, untrack } from "./signals.ts";
 
 function toCamelCase(str: string): string {
   // since we use real DOM attributes, we need to convert kebab-case to camelCase
@@ -154,7 +154,7 @@ export function reactiveNodes(
             const expr = attr.value;
             effect(() => {
               const value = evalExpr(expr);
-              Reflect.set(element, propName, value);
+              untrack(() => Reflect.set(element, propName, value));
             });
             element.removeAttribute(attr.name);
           } else if (attr.name.startsWith(":")) {
@@ -163,7 +163,7 @@ export function reactiveNodes(
             const expr = attr.value;
             effect(() => {
               const value = evalExpr(expr);
-              element.setAttribute(attrName, value);
+              untrack(() => element.setAttribute(attrName, value));
             });
             element.removeAttribute(attr.name);
           } else if (attr.name.startsWith("@")) {
@@ -200,7 +200,7 @@ export function reactiveNodes(
               if (part.type === "dynamic") {
                 effect(() => {
                   const value = evalExpr(part.content);
-                  newTextNode.textContent = String(value);
+                  untrack(() => (newTextNode.textContent = String(value)));
                 });
               }
             }

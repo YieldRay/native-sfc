@@ -1,6 +1,6 @@
 import { test, describe } from "node:test";
 import assert from "node:assert";
-import { signal, computed, effect, effectScope } from "./signals.ts";
+import { signal, computed, effect, effectScope, untrack } from "./signals.ts";
 
 const nextTick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
@@ -40,6 +40,23 @@ describe("Signal System", () => {
     test("read without active effect", () => {
       const [count] = signal(42);
       assert.strictEqual(count(), 42);
+    });
+
+    test("untrack prevents dependency tracking", async () => {
+      const [count, setCount] = signal(0);
+      let runs = 0;
+
+      effect(() => {
+        runs++;
+        untrack(() => {
+          count();
+        });
+      });
+
+      assert.strictEqual(runs, 1);
+      setCount(1);
+      await nextTick();
+      assert.strictEqual(runs, 1);
     });
 
     test("write with same value does not trigger effects", async () => {
