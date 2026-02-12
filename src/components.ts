@@ -184,6 +184,10 @@ function extendsElement<BaseClass extends typeof HTMLElement = typeof HTMLElemen
       // Make the shadow root reactive if a setup() method is defined
       if ("setup" in this && typeof this.setup === "function") {
         const context = this.setup(); // <- `this` is the component instance
+        // TODO: There is a potential memory leak because reactiveNodes creates effects that are never stopped (disposed).
+        // However, fixing this by disposing effects in disconnectedCallback would break the ability to move components in the DOM
+        // (disconnecting and reconnecting would leave the component inert because the template bindings are destroyed and cannot be easily recreated).
+        // Given this trade-off, we decided to preserve the current behavior to support component relocation.
         reactiveNodes(this.shadowRoot!.childNodes, context);
       } else {
         reactiveNodes(this.shadowRoot!.childNodes, {});
@@ -276,8 +280,8 @@ export function defineComponent(
       // never execute onDisconnected in document context, since the document is never removed
     },
   });
-  //! make the whole document reactive, just like the web component (defined at `extendsElement`)
-  reactiveNodes(document.childNodes, context);
+  //! make the document.body reactive, just like the web component (defined at `extendsElement`)
+  reactiveNodes(document.body.childNodes, context);
   return; // return nothing
 }
 

@@ -1,4 +1,5 @@
 import { effect, computed, effectScope, untrack } from "./signals.ts";
+import { warn } from "./error.ts";
 
 function toCamelCase(str: string): string {
   // since we use real DOM attributes, we need to convert kebab-case to camelCase
@@ -56,12 +57,17 @@ export function reactiveNodes(
         : additionalContext;
     const keys = Object.keys(ctx);
     const values = Object.values(ctx);
-    const func = new Function(...keys, `return ${expr.trimStart()}`);
-    return func(...values);
+
+    try {
+      const func = new Function(...keys, `return ${expr.trimStart()}`);
+      return func(...values);
+    } catch (error) {
+      warn(`Failed to evaluate expression: "${expr}"`, error);
+    }
   };
 
   const recursive = (nodes: NodeListOf<Node> | Node[]) => {
-    for (const node of nodes) {
+    for (const node of Array.from(nodes)) {
       if (node.nodeType === Node.ELEMENT_NODE) {
         const element = node as HTMLElement; // note: this may also be a custom element
 
