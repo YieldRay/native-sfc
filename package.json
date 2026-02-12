@@ -16,9 +16,9 @@
     "stacktrace-parser": "^0.1.11"
   },
   "devDependencies": {
-    "@types/node": "^25.1.0",
+    "@types/node": "^25.2.3",
     "dts-bundle-generator": "^9.5.1",
-    "esbuild": "^0.27.2"
+    "esbuild": "^0.27.3"
   },
   "author": "YieldRay",
   "license": "MIT",
