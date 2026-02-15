@@ -1,5 +1,5 @@
 /**
- * @fileoverview Component loading and registration system for Native SFC (Single File Components).
+ * @overview Component loading and registration system for Native SFC (Single File Components).
  *
  * This module provides the core functionality to:
  * - Load HTML-based web components from external files

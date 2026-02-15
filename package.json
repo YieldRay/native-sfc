@@ -8,7 +8,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node esbuild.ts && dts-bundle-generator -o dist/index.d.ts src/index.ts",
+    "build": "node esbuild.ts && dts-bundle-generator -o dist/index.d.ts src/index.ts --export-referenced-types=false",
     "dev": "node esbuild.ts --dev"
   },
   "dependencies": {
